@@ -23,7 +23,8 @@
 import ConfigParser
 import argparse
 import getpass
-import ldap
+import ldap3
+import ssl
 import logging
 import os
 import random
@@ -395,66 +396,62 @@ class PKIConfigParser:
             subsystem_dict[0] = None
             self.mdict.update(subsystem_dict)
 
-    def ds_connect(self):
+    def ds_connect(self, bind=True):
 
         hostname = self.mdict['pki_ds_hostname']
+        args = {}
 
         if config.str2bool(self.mdict['pki_ds_secure_connection']):
-            protocol = 'ldaps'
             port = self.mdict['pki_ds_ldaps_port']
-            # ldap.set_option(ldap.OPT_DEBUG_LEVEL, 255)
-            ldap.set_option(ldap.OPT_X_TLS_DEMAND, True)
-            ldap.set_option(ldap.OPT_X_TLS, ldap.OPT_X_TLS_DEMAND)
-            ldap.set_option(ldap.OPT_X_TLS_CACERTFILE,
-                            self.mdict['pki_ds_secure_connection_ca_pem_file'])
-            ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_DEMAND)
+            args['use_ssl'] = True
+            cert_file = self.mdict['pki_ds_secure_connection_ca_pem_file']
+            tls = ldap3.Tls(
+                local_certificate_file=cert_file,
+                local_private_key_file=cert_file,
+                validate=ssl.CERT_REQUIRED,
+            )
+            args['tls'] = tls
         else:
-            protocol = 'ldap'
             port = self.mdict['pki_ds_ldap_port']
 
-        self.ds_connection = ldap.initialize(
-            protocol + '://' + hostname + ':' + port)
-
-    def ds_bind(self):
-        self.ds_connection.simple_bind_s(
-            self.mdict['pki_ds_bind_dn'],
-            self.mdict['pki_ds_password'])
+        server = ldap3.Server(hostname, port=int(port), **args)
+        if bind:
+            self.ds_connection = ldap3.Connection(
+                server, user=self.mdict['pki_ds_bind_dn'],
+                password=self.mdict['pki_ds_password'])
+            if not self.ds_connection.bind():
+                raise RuntimeError('error in bind, %s' %
+                                   self.ds_connection.result)
+        else:
+            self.ds_connection = ldap3.Connection(server)
 
     def ds_search(self, key=None):
         if key is None:
             key = ''
-        self.ds_connection.search_s(key, ldap.SCOPE_BASE)
+        self.ds_connection.search(key, '(objectclass=*)',
+                                  search_scope=ldap3.BASE)
+        return self.ds_connection.response
 
     def ds_close(self):
-        self.ds_connection.unbind_s()
+        self.ds_connection.unbind()
 
     def ds_verify_configuration(self):
-
-        try:
-            self.ds_connect()
-            self.ds_bind()
-            self.ds_search()
-        except:
-            raise
-        finally:
-            self.ds_close()
+        self.ds_connect()
+        self.ds_search()
+        self.ds_close()
 
     def ds_base_dn_exists(self):
         base_dn_exists = True
         try:
             self.ds_connect()
-            self.ds_bind()
-            self.ds_search()
-            try:
+            if self.ds_search():
                 results = self.ds_search(self.mdict['pki_ds_base_dn'])
 
                 if results is None or len(results) == 0:
                     base_dn_exists = False
 
-            except ldap.NO_SUCH_OBJECT:
+            else:
                 base_dn_exists = False
-        except:
-            raise
         finally:
             self.ds_close()
         return base_dn_exists
@@ -503,27 +500,25 @@ class PKIConfigParser:
         port = self.mdict['pki_authdb_port']
 
         if config.str2bool(self.mdict['pki_authdb_secure_conn']):
-            protocol = 'ldaps'
+            use_ssl = True
         else:
-            protocol = 'ldap'
+            use_ssl = False
 
-        self.authdb_connection = ldap.initialize(
-            protocol + '://' + hostname + ':' + port)
-        self.authdb_connection.search_s('', ldap.SCOPE_BASE)
+        server = ldap3.Server(hostname, port=int(port), use_ssl=use_ssl)
+        self.authdb_connection = ldap3.Connection(server)
+        self.authdb_connection.search('', '(objectclass=*)',
+                                      search_scope=ldap3.BASE)
 
     def authdb_base_dn_exists(self):
-        try:
-            results = self.authdb_connection.search_s(
-                self.mdict['pki_authdb_basedn'],
-                ldap.SCOPE_BASE)
+        self.authdb_connection.search(
+            self.mdict['pki_authdb_basedn'], '(objectclass=*)',
+            search_scope=ldap3.BASE)
+        results = self.ds_connection.response
 
-            if results is None or len(results) == 0:
-                return False
-
-            return True
-
-        except ldap.NO_SUCH_OBJECT:
+        if results is None or len(results) == 0:
             return False
+
+        return True
 
     def get_server_status(self, system_type, system_uri):
         parse = urlparse(self.mdict[system_uri])

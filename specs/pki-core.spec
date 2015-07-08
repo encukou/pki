@@ -33,7 +33,7 @@ distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 Name:             pki-core
 Version:          10.2.6
-Release:          0.2%{?dist}
+Release:          0.3%{?dist}
 Summary:          Certificate System - PKI Core Components
 URL:              http://pki.fedoraproject.org/
 License:          GPLv2
@@ -102,7 +102,7 @@ BuildRequires:    python-nss
 BuildRequires:    python-requests
 BuildRequires:    libselinux-python
 BuildRequires:    policycoreutils-python
-BuildRequires:    python-ldap
+BuildRequires:    python-ldap3
 BuildRequires:    junit
 BuildRequires:    jpackage-utils >= 0:1.7.5-10
 BuildRequires:    jss >= 4.2.6-35
@@ -269,7 +269,7 @@ Requires:         javassist
 Requires:         jpackage-utils >= 0:1.7.5-10
 Requires:         jss >= 4.2.6-35
 Requires:         ldapjdk
-Requires:         python-ldap
+Requires:         python-ldap3
 Requires:         python-lxml
 Requires:         python-requests >= 1.1.0-3
 
@@ -958,6 +958,9 @@ systemctl daemon-reload
 %endif # %{with server}
 
 %changelog
+* Wed Jul 08 2015 Petr Viktorin <pviktori@redhat.com> 10.2.6-0.3
+- Replace python-ldap by python-ldap3
+
 * Sat Jun 20 2015 Dogtag Team <pki-devel@redhat.com> 10.2.6-0.2
 - Remove ExcludeArch directive
 

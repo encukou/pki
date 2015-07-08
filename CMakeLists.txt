@@ -102,6 +102,15 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+execute_process(
+    COMMAND
+        python3 -c
+        "from distutils.sysconfig import get_python_lib; print(get_python_lib())"
+    OUTPUT_VARIABLE
+        PYTHON3_SITE_PACKAGES
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 # config.h checks
 include(ConfigureChecks.cmake)
 configure_file(config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)

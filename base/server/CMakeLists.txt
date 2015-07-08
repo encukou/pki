@@ -40,6 +40,14 @@ install(
         ${PYTHON_SITE_PACKAGES}
 )
 
+# install Python 3 libraries
+install(
+    DIRECTORY
+        python/
+    DESTINATION
+        ${PYTHON3_SITE_PACKAGES}
+)
+
 # install systemd scripts
 install(
     DIRECTORY

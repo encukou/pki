@@ -40,7 +40,7 @@ distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 Name:             pki-core
 Version:          10.3.0
-Release:          0.2%{?dist}
+Release:          0.3%{?dist}
 Summary:          Certificate System - PKI Core Components
 URL:              http://pki.fedoraproject.org/
 License:          GPLv2
@@ -125,7 +125,7 @@ BuildRequires:    tomcatjss >= 7.1.0-6
 %if 0%{?fedora} >= 23
 BuildRequires:    tomcatjss >= 7.1.3
 %else
-BuildRequires:    tomcatjss >= 7.1.2
+BuildRequires:    tomcatjss >= 7.1.1
 %endif
 %endif
 
@@ -142,6 +142,8 @@ BuildRequires:    systemd
 BuildRequires:    svrcore-devel
 BuildRequires:    zlib
 BuildRequires:    zlib-devel
+
+BuildRequires:    python3
 
 %if 0%{?rhel}
 # NOTE:  In the future, as a part of its path, this URL will contain a release
@@ -315,14 +317,28 @@ Requires:         resteasy >= 3.0.6-2
 %endif
 %endif
 
-Requires:         xalan-j2
-Requires:         xerces-j2
-Requires:         xml-commons-apis
-Requires:         xml-commons-resolver
-
 %description -n   pki-base
 The PKI Framework contains the common and client libraries and utilities.
 This package is a part of the PKI Core used by the Certificate System.
+
+This package is a part of the PKI Core used by the Certificate System.
+
+%{overview}
+
+
+%package -n   python3-pki
+Summary:          Certificate System - Python 3 support
+
+Requires:         pki-base = %{version}-%{release}
+
+Requires:         python3-pyldap
+Requires:         python3-lxml
+Requires:         python3-nss
+Requires:         python3-requests >= 1.1.0-3
+Requires:         python3-six
+
+%description -n   python3-pki
+The Python 3 subpackage contains files for Python 3 support.
 
 %{overview}
 
@@ -446,6 +462,25 @@ This package is a part of the PKI Core used by the Certificate System.
 The package contains scripts to create and remove PKI subsystems.
 
 %{overview}
+
+
+%package -n       python3-pki-server
+Summary:          Certificate System - PKI Server Python 3 Support
+Group:            System Environment/Base
+
+Requires:         policycoreutils-python
+%if 0%{?fedora} >= 23
+Requires:         policycoreutils-python-utils
+%endif
+
+Requires:         pki-base = %{version}-%{release}
+Requires:         pki-server = %{version}-%{release}
+
+%description -n   python3-pki-server
+Python 3 support for the PKI Server Framework
+
+%{overview}
+
 
 %package -n       pki-ca
 Summary:          Certificate System - Certificate Authority
@@ -849,6 +884,12 @@ systemctl daemon-reload
 %{_mandir}/man8/pki-upgrade.8.gz
 %{_mandir}/man1/pki-python-client.1.gz
 
+%files -n python3-pki
+%dir %{python3_sitelib}/pki
+%{python3_sitelib}/pki/*.py
+%{python3_sitelib}/pki/__pycache__/*.pyc
+%{python3_sitelib}/pki/__pycache__/*.pyo
+
 %files -n pki-tools
 %defattr(-,root,root,-)
 %doc base/native-tools/LICENSE base/native-tools/doc/README
@@ -939,6 +980,8 @@ systemctl daemon-reload
 %{_datadir}/pki/setup/
 %{_datadir}/pki/server/
 
+%files -n python3-pki-server
+%{python3_sitelib}/pki/server/
 
 %files -n pki-ca
 %defattr(-,root,root,-)
@@ -1006,6 +1049,9 @@ systemctl daemon-reload
 %endif # %{with server}
 
 %changelog
+* Tue Oct 13 2015 Petr Viktorin <pviktori@redhat.com> 10.3.0-0.3
+- Add subpackages for Python 3
+
 * Sat Oct  2 2015 Dogtag Team <pki-devel@redhat.com> 10.3.0-0.2
 - PKI TRAC Ticket #1623 - Runtime dependency on python-nss is missing
 

@@ -42,6 +42,13 @@ install(
 
 install(
     DIRECTORY
+        pki
+    DESTINATION
+        ${PYTHON3_SITE_PACKAGES}
+)
+
+install(
+    DIRECTORY
         ${CMAKE_CURRENT_BINARY_DIR}/html
     DESTINATION
         ${SHARE_INSTALL_PREFIX}/doc/pki-base/
